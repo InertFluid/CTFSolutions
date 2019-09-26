@@ -1,0 +1,57 @@
+# Solution to unsafe-unlink bin-course-2019 #
+
+Malloc'd 3 chunks of size 0x80, 2(2nd and 3rd, according to the global array of pointers) of which were adjacent on the heap
+
+Address of global array - 0x602148
+The address of the 2nd chunk in memory is 0x602148 + 0x8 = 0x602150
+
+Created a fake chunk in the 'data' section of the 2nd chunk.
+
+*********Structure of 2nd chunk**********
+
+0x0       0x91
+0x0       0x0  ------------------->{Fake chunk starts}    
+0x602138  0x602140			
+('A's to fill the rest of it)
+
+*****************************************
+
+*********Header of 3rd chunk*************
+
+(Size of previous chunk)		(Size of current chunk)(PREV_IN_USE bit is set 0, so that unlink occurs)
+0x80      						0x90
+
+*****************************************
+
+This is to ensure P->fd->bk = P and P->bk->fd = P
+
+(P->fd = P+0x10)
+(P->bk = P+0x18)
+
+So, for the fake chunk, P->fd points to 0x602138 and P->fd->bk points to 0x602150 which in turn points to the data section of the 2nd chunk (since malloc returns a pointer to the data section) i.e. our fake chunk i.e. P
+Similary, P->bk points to 0x602140 and P->bk->fd points to 0x602150.
+
+The "corrupted double-linked list" security check is cleared.
+
+The "corrupted size vs. prev_size" security check is cleared by setting the header of the 3rd chunk as shown above. (This checks whether chunk size is equal to the previous size set in the next chunk)
+
+Now, upon freeing the 3rd chunk, the unlink macro executes the following two instructions:
+
+P->fd->bk = P->bk
+P->bk->fd = P->fd
+
+Since P->fd->bk and P->bk->fd point to the same address, only the second change applies.
+Now, the address 0x602150 now contains 0x602138 (P->fd)
+
+We can write to the global array of pointers.
+We can use this to achieve an arbritrary write to any writable part of memory.
+
+After this, the challenge is starightforward. 
+Write the plt entries of strlen(3rd), puts(4th) and atoi(5th) to the array of pointers.
+Overwrite the plt entry of strlen with puts and call the 4th operator of the binary to print the resolved address of puts.
+Calculate the base adress of libc and overwrite the atoi got entry with the address of system function.
+The function atoi is called in every iteration
+
+Give input as '/bin/sh'
+
+

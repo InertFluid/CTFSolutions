@@ -1,0 +1,4 @@
+week 1 challenge 2
+binary => https://github.com/ctfs/write-ups-2015/raw/master/0ctf-2015/exploit/freenote/freenote
+libc => https://github.com/ctfs/write-ups-2015/raw/master/0ctf-2015/exploit/freenote/libc.so.6_1 
+same resources as the previous one. 

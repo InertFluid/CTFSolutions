@@ -1,0 +1,8 @@
+binary:
+binary => https://github.com/0x3f97/pwn/raw/master/hitcon-ctf-2014-stkof/stkof
+libc => https://github.com/aweinstock314/aweinstock-ctf-writeups/blob/master/csaw_quals_2016/pwn300_hungman/libc-2.23.so
+resources:
+https://heap-exploitation.dhavalkapil.com/diving_into_glibc_heap/malloc_chunk.html
+https://heap-exploitation.dhavalkapil.com/attacks/unlink_exploit.html
+https://www.lazenca.net/display/TEC/unsafe+unlink
+https://github.com/shellphish/how2heap/blob/master/glibc_2.26/unsafe_unlink.c
