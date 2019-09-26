@@ -5,8 +5,6 @@ libc = ELF('/home/inertfluid/libc-database/libs/libc6-i386_2.23-0ubuntu11_amd64/
 libc_setbuf = libc.symbols['setbuf']
 libc_system = libc.symbols['system']
 
-a = []
-
 def dump(addr, frmt='p'):
 	addr = p32(addr)
 	leak_part = '|%39${}|'.format(frmt)
