@@ -1,0 +1,5 @@
+https://heap-exploitation.dhavalkapil.com/attacks/house_of_force.html
+https://github.com/shellphish/how2heap/blob/master/glibc_2.25/house_of_force.c
+https://www.lazenca.net/display/TEC/The+House+of+Force
+https://mega.nz/#!XvInEABK!7R3-Hbl7dGY-7FGVuTxP25NkQfd5OQBn6P9thxk3l7U
+https://mega.nz/#!z3An1Y5b!eY7eK3OYBLU3jFtOq3ZUrwiXWJzw2UGXyVOJDDS4qn8

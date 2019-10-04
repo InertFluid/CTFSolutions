@@ -1,0 +1,59 @@
+# Solution to gryffindor bin-course-2019 #
+
+The vulnerability in the binary is a heap overflow i.e. we can write more memory than we are allocated by malloc. This implies we can overwrite the adjacent chunk's header and even its data. The House of Force attack focuses on overwriting the top_chunk header.
+
+A normal heap allocation looks as follows:
+
+0x1a57110:	0x0000000000000000	0x00000000000000a1
+0x1a57120:	0x0000000000000000	0x0000000000000000
+0x1a57130:	0x0000000000000000	0x0000000000000000
+0x1a57140:	0x0000000000000000	0x0000000000000000
+0x1a57150:	0x0000000000000000	0x0000000000000000
+0x1a57160:	0x0000000000000000	0x0000000000000000
+0x1a57170:	0x0000000000000000	0x0000000000000000
+0x1a57180:	0x0000000000000000	0x0000000000000000
+0x1a57190:	0x0000000000000000	0x0000000000000000
+0x1a571a0:	0x0000000000000000	0x0000000000000000
+0x1a571b0:	0x0000000000000000	0x0000000000020e51 ---------> Top chunk header
+
+Using the overflow vuln, we can overwrite the top chunk header as follows:
+
+0x1a57110:	0x0000000000000000	0x00000000000000a1
+0x1a57120:	0x6161616161616161	0x6161616161616161
+0x1a57130:	0x6161616161616161	0x6161616161616161
+0x1a57140:	0x6161616161616161	0x6161616161616161
+0x1a57150:	0x6161616161616161	0x6161616161616161
+0x1a57160:	0x6161616161616161	0x6161616161616161
+0x1a57170:	0x6161616161616161	0x6161616161616161
+0x1a57180:	0x6161616161616161	0x6161616161616161
+0x1a57190:	0x6161616161616161	0x6161616161616161
+0x1a571a0:	0x6161616161616161	0x6161616161616161
+0x1a571b0:	0x6161616161616161	0xffffffffffffffff ----------> Top chunk header
+
+The top chunk header keeps track of the amount of memory left on the heap. So, now we have 0xffffffffffffffff bytes left on the heap. 
+Another vuln in the binary is that when we allocate a chunk and provide a negative input as size, this  value is passed to atoll() which returns a long long int. But this value is then stored in a unsigned long long int. So, it becomes a valid size and is passed to malloc.
+
+We need the top_chunk_addr + request_size = address_we_want_to_write_to (Global array of pointers)
+But, the top_chunk_addr > address of global array of pointers (0x6020e0)
+
+We can overcome this by using an integer overflow.
+In this case, top_chunk_addr = 0x1a571b0
+Therfore, request size is 0x6020e0 - 0x1a571b0 = -0x14550d0
+As an ull 0xffffffffffffffff - 0x14550d0 + 1 = 0xfffffffffebaaf30
+
+Therefore, our request size will finally be 0xfffffffffebaaf30
+req + top_chunk_addr = 0xfffffffffebaaf30 + 0x1a571b0 = 0x100000000006020e0 = 0x6020e0(16-byte resgisters)
+
+This will lead the top chunk header being written at 0x6020e0 and the next malloc will give us access to 0x6020f0(data part of chunk)
+(This can adjusted according the header parts of the chunks)
+
+Hence, this pointer will be written to the array of pointers.
+
+After that we just overwrite the free GOT entry with the call to puts.
+This will lead to a libc leak when we free an address from the GOT
+Overwrite atoi with system and give input as 'sh'
+
+
+
+
+
