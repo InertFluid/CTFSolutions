@@ -1,0 +1,40 @@
+### BABYTCACHE WRITEUP ###
+
+Usually to leak libc in a tcache problem, we just allocated 8 chunks and then free them one-by-one and the eighth chunk (if big enough) will be stored in the unsorted bin (if size is small it will be stored in a fastbin), since tcache bins (by default) store only 7 chunks in them.
+
+The binary prevents us from using free() more than 7 seven times (and also allows only 8 allocations).
+
+When the heap is initialised (from glibc 2.27 onwards) a tcache-perthread-struct is allocated at the top of the heap. This stores the information of the number of chunks in a particular bin and the pointers to the top of the bin. 
+
+EXAMPLE:
+
+>>> add(0, 0x20, 'AAAABBBB')
+>>> add(1, 0x20, 'CCCCDDDD')
+>>> add(2, 0x20, 'EEEEFFFF')
+>>> free(1)
+>>> free(2)
+
+0x55b17e449000:	0x0000000000000000	0x0000000000000251 -------> Top of the heap
+0x55b17e449010:	0x0000000000000200	0x0000000000000000 -------> 1-byte counter for size 0x20 tcache bin
+0x55b17e449020:	0x0000000000000000	0x0000000000000000
+0x55b17e449030:	0x0000000000000000	0x0000000000000000
+0x55b17e449040:	0x0000000000000000	0x0000000000000000
+0x55b17e449050:	0x0000000000000000	0x000055b17e4492c0 -------> Pointer to top of bin
+0x55b17e449060:	0x0000000000000000	0x0000000000000000
+0x55b17e449070:	0x0000000000000000	0x0000000000000000
+------------------------------------------------------
+------------------------------------------------------
+0x55b17e449250:	0x0000000000000000	0x0000000000000031 -------> Chunk 1
+0x55b17e449260:	0x4242424241414141	0x0000000000000000
+0x55b17e449270:	0x0000000000000000	0x0000000000000000
+0x55b17e449280:	0x0000000000000000	0x0000000000000031 -------> Chunk 2
+0x55b17e449290:	0x0000000000000000	0x0000000000000000
+0x55b17e4492a0:	0x0000000000000000	0x0000000000000000
+0x55b17e4492b0:	0x0000000000000000	0x0000000000000031 -------> Chunk 3
+0x55b17e4492c0:	0x000055b17e449290	0x0000000000000000 -------> Address pointed to by struct
+0x55b17e4492d0:	0x0000000000000000	0x0000000000000000
+0x55b17e4492e0:	0x0000000000000000	0x0000000000020d21
+
+Using UAF, we can alter the fd pointer of a freed chunk to point into the tcache-perthread-struct and modify the counter to 7. Thus, now if we free a big enough chunk it will be stored in an unsorted bin and thus we get a libc leak in its fd (and bk).
+
+After that we use the leak to overwrite __free_hook with a one-gadget and call free() to get a shell.
